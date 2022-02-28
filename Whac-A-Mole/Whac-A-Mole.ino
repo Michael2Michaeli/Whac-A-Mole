@@ -21,9 +21,13 @@ int p2_leds[buttons];
 int p1_score = 0;
 int p2_score = 0;
 
-int action_speed = 1000; //delay
+int action_speed = 1000; //ms
+int action_speed_p2 = 1000;
 int action_speed_start = 1000;
 unsigned long previousMillis = 0;
+
+
+
 
 int pin_light;
 
@@ -77,10 +81,20 @@ void loop()
         else if (digitalRead(p1_buttons[1])==LOW)
         {
             twoPlayersGame = true;
+            Serial.println("two players game is choose!");
             break;
         }
-        
+        delay(50);     
     }
+
+    for (int i = 0; i < buttons; i++)
+    {
+        digitalWrite(p1_leds[i], HIGH);
+        delay(100);
+        digitalWrite(p1_leds[i], LOW);
+        delay(100);
+    }
+
 
     //game for 1 player
     while (onePlayerGame)
@@ -129,20 +143,29 @@ void loop()
         }
     }    
 
-    //game for 1 player
+    //game for 2 players
     while (twoPlayersGame)
     {
         currentMillis = millis();
 
         if (p1_score < 100 and p2_score<100)
         {
-            //set button light
+            //set button light p1
             if (currentMillis - previousMillis >= action_speed)
             {
                 digitalWrite(p1_leds[pin_light], LOW);
                 previousMillis = currentMillis;
                 pin_light = random(0, buttons);
                 digitalWrite(p1_leds[pin_light], HIGH);
+            }
+
+            //set button light p2
+            if (currentMillis - previousMillis >= action_speed_p2)
+            {
+                digitalWrite(p2_leds[pin_light], LOW);
+                previousMillis = currentMillis;
+                pin_light = random(0, buttons);
+                digitalWrite(p2_leds[pin_light], HIGH);
             }
 
             //get button press from player
@@ -156,6 +179,17 @@ void loop()
                     Serial.print("Player 1 Score: ");
                     Serial.println(p1_score);
                     action_speed = action_speed_start * exp(-0.03 * p1_score);
+                    //Serial.println(action_speed);
+                }
+
+                //player 2
+                if (digitalRead(p2_buttons[i]) == LOW and digitalRead(p2_leds[i]))
+                {
+                    digitalWrite(p2_leds[i], LOW);
+                    p1_score++;
+                    Serial.print("Player 2 Score: ");
+                    Serial.println(p2_score);
+                    action_speed_p2 = action_speed_start * exp(-0.03 * p2_score);
                     //Serial.println(action_speed);
                 }
 
