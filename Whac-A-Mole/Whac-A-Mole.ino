@@ -3,6 +3,8 @@
  Created:	2/26/2022 9:34:19 PM
  Author:	micha
 */
+
+#include <arduino-timer.h>
 #define buttons 3
 
 long randNumber;
@@ -57,8 +59,20 @@ void setup()
     }       
 }
 
-bool onePlayerGame;
-bool twoPlayersGame;
+//bool onePlayerGame;
+//bool twoPlayersGame;
+
+
+enum games
+{
+    onePlayerGame,
+    twoPlayersGame,
+    twoPlayersGameTimeLimit,
+    numberOfGames
+};
+
+games gameType;
+
 unsigned long currentMillis;
 
 void loop()
@@ -67,26 +81,36 @@ void loop()
     //game choose
     while (true)
     {
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < numberOfGames; i++)
         {
             digitalWrite(p1_leds[i], HIGH);
         }
 
         if (digitalRead(p1_buttons[0])==LOW)
         {
-            onePlayerGame = true;
+            gameType = onePlayerGame;
+            //onePlayerGame = true;
             Serial.println("one player game is choose!");
             break;
         }
         else if (digitalRead(p1_buttons[1])==LOW)
         {
-            twoPlayersGame = true;
+            gameType = twoPlayersGame;
+            //twoPlayersGame = true;
             Serial.println("two players game is choose!");
+            break;
+        }
+        else if (digitalRead(p1_buttons[2]) == LOW)
+        {
+            gameType = twoPlayersGameTimeLimit;
+            //twoPlayersGame = true;
+            Serial.println("two players time limit game is choose!");
             break;
         }
         delay(50);     
     }
 
+    //turn off leds
     for (int i = 0; i < buttons; i++)
     {
         digitalWrite(p1_leds[i], HIGH);
@@ -97,7 +121,7 @@ void loop()
 
 
     //game for 1 player
-    while (onePlayerGame)
+    while (gameType == onePlayerGame)
     {
         currentMillis = millis();
         
@@ -144,7 +168,7 @@ void loop()
     }    
 
     //game for 2 players
-    while (twoPlayersGame)
+    while (gameType == twoPlayersGame)
     {
         currentMillis = millis();
 
@@ -197,16 +221,116 @@ void loop()
         }
         else
         {
+            if (p1_score==100)
+            {
+                Serial.println("Player 1 Win!!");
+            }
+            else if (p2_score == 100)
+            {
+                Serial.println("Player 2 Win!!");
+            }
+
             for (int i = 0; i < buttons; i++)
             {
                 digitalWrite(p1_leds[i], HIGH);
-            }
-            delay(500);
+                delay(100);
+                digitalWrite(p2_leds[i], HIGH);
+                delay(100);
+            }            
             for (int i = 0; i < buttons; i++)
             {
                 digitalWrite(p1_leds[i], LOW);
+                delay(100);
+                digitalWrite(p2_leds[i], LOW);
+                delay(100);
             }
-            delay(500);
+            
+        }
+    }
+
+    //game for 2 players - top score limit time
+
+
+    int time_limit = 20000; //20 sec
+    while (gameType == twoPlayersGameTimeLimit)
+    {
+      
+        
+        currentMillis = millis();
+
+        if (p1_score < 100 and p2_score < 100)
+        {
+            //set button light p1
+            if (currentMillis - previousMillis >= action_speed)
+            {
+                digitalWrite(p1_leds[pin_light], LOW);
+                previousMillis = currentMillis;
+                pin_light = random(0, buttons);
+                digitalWrite(p1_leds[pin_light], HIGH);
+            }
+
+            //set button light p2
+            if (currentMillis - previousMillis >= action_speed_p2)
+            {
+                digitalWrite(p2_leds[pin_light], LOW);
+                previousMillis = currentMillis;
+                pin_light = random(0, buttons);
+                digitalWrite(p2_leds[pin_light], HIGH);
+            }
+
+            //get button press from player
+            for (int i = 0; i < buttons; i++)
+            {
+                //player 1
+                if (digitalRead(p1_buttons[i]) == LOW and digitalRead(p1_leds[i]))
+                {
+                    digitalWrite(p1_leds[i], LOW);
+                    p1_score++;
+                    Serial.print("Player 1 Score: ");
+                    Serial.println(p1_score);
+                    action_speed = action_speed_start * exp(-0.03 * p1_score);
+                    //Serial.println(action_speed);
+                }
+
+                //player 2
+                if (digitalRead(p2_buttons[i]) == LOW and digitalRead(p2_leds[i]))
+                {
+                    digitalWrite(p2_leds[i], LOW);
+                    p1_score++;
+                    Serial.print("Player 2 Score: ");
+                    Serial.println(p2_score);
+                    action_speed_p2 = action_speed_start * exp(-0.03 * p2_score);
+                    //Serial.println(action_speed);
+                }
+
+            }
+        }
+        else
+        {
+            if (p1_score == 100)
+            {
+                Serial.println("Player 1 Win!!");
+            }
+            else if (p2_score == 100)
+            {
+                Serial.println("Player 2 Win!!");
+            }
+
+            for (int i = 0; i < buttons; i++)
+            {
+                digitalWrite(p1_leds[i], HIGH);
+                delay(100);
+                digitalWrite(p2_leds[i], HIGH);
+                delay(100);
+            }
+            for (int i = 0; i < buttons; i++)
+            {
+                digitalWrite(p1_leds[i], LOW);
+                delay(100);
+                digitalWrite(p2_leds[i], LOW);
+                delay(100);
+            }
+
         }
     }
 }
